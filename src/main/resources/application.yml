@@ -1,0 +1,8 @@
+greeting:
+  message: "hello"
+
+"%dev":
+  quarkus:
+    dynamodb:
+      endpoint-override: http://localhost:8000
+
