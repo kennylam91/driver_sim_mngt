@@ -6,3 +6,7 @@ greeting:
     dynamodb:
       endpoint-override: http://localhost:8000
 
+"%test":
+  quarkus:
+    dynamodb:
+      endpoint-override: http://localhost:8000
