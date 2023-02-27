@@ -6,6 +6,11 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.inject.Inject;
 import lombok.SneakyThrows;
 import org.web.common.ValidationException;
 import org.web.entity.Answer;
@@ -14,20 +19,12 @@ import org.web.service.AnswerService;
 import org.web.service.UserService;
 import software.amazon.awssdk.utils.StringUtils;
 
-import javax.inject.Inject;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+public class LambdaHandler
+    implements RequestHandler<Map<String, Object>, APIGatewayProxyResponseEvent> {
 
-public class LambdaHandler implements RequestHandler<Map<String, Object>, APIGatewayProxyResponseEvent> {
-
-  @Inject
-  UserService userService;
-  @Inject
-  AnswerService answerService;
-  @Inject
-  ObjectMapper objectMapper;
+  @Inject UserService userService;
+  @Inject AnswerService answerService;
+  @Inject ObjectMapper objectMapper;
 
   @SneakyThrows
   @Override
@@ -40,24 +37,21 @@ public class LambdaHandler implements RequestHandler<Map<String, Object>, APIGat
     boolean isGetMethod = "GET".equals(httpMethod);
 
     APIGatewayProxyResponseEvent response = getDefaultApiGatewayProxyResponseEvent();
-    if (StringUtils.isBlank(path)) {
-      response.setStatusCode(404);
-      response.setBody("invalid path");
-      return response;
-    }
 
-    if (path.startsWith("/users")) {
-      if (isPostMethod) return postUser(body);
-      else if (isGetMethod) return getUser(path);
-    }
+    if (StringUtils.isNotBlank(path) && StringUtils.isNotBlank(httpMethod)) {
+      if (path.startsWith("/users")) {
+        if (isPostMethod) return postUser(body);
+        else if (isGetMethod) return getUser(path);
+      }
 
-    if ("/login".equals(path)) {
-      if (isPostMethod) return handlePostLogin(body);
-    }
+      if ("/login".equals(path)) {
+        if (isPostMethod) return handlePostLogin(body);
+      }
 
-    if (path.startsWith("/answers")) {
-      if (isPostMethod) return postAnswer(body);
-      else if (isGetMethod) return getAnswers(path);
+      if (path.startsWith("/answers")) {
+        if (isPostMethod) return postAnswer(body);
+        else if (isGetMethod) return getAnswers(path);
+      }
     }
 
     response.setStatusCode(404);
@@ -104,7 +98,8 @@ public class LambdaHandler implements RequestHandler<Map<String, Object>, APIGat
       response.setStatusCode(200);
       response.setBody(objectMapper.writeValueAsString(foundUser));
     } else {
-      response.setStatusCode(404);
+      response.setStatusCode(400);
+      response.setBody("username_password_not_correct");
     }
     return response;
   }
@@ -129,7 +124,8 @@ public class LambdaHandler implements RequestHandler<Map<String, Object>, APIGat
     return response;
   }
 
-  private APIGatewayProxyResponseEvent postUser(Object body) throws com.fasterxml.jackson.core.JsonProcessingException {
+  private APIGatewayProxyResponseEvent postUser(Object body)
+      throws com.fasterxml.jackson.core.JsonProcessingException {
     var response = getDefaultApiGatewayProxyResponseEvent();
     User user = objectMapper.readValue(body.toString(), User.class);
     User createdUser = null;
